@@ -5,8 +5,8 @@
         <v-toolbar-title>
           <v-container fill-height fluid>
             <v-row align="center" justify="center">
-              <v-col><span class="display-1">NewsFeeling</span></v-col>
-              <v-col><span class="body-1">A Sentiment Visualization of the News</span></v-col>
+              <v-col><span class="display-1 font-weight-bold">NewsFeeling</span></v-col>
+              <v-col><span class="body-1">Sentiment Visualization Journalism</span></v-col>
             </v-row>          
           </v-container>
         </v-toolbar-title>
