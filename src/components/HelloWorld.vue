@@ -1,58 +1,227 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
-  </div>
+<transition name="slide">
+
+  <v-container fill-height fluid>
+    <v-container absolute padding="20%">
+      <v-text-field
+        ref="searchField"
+        v-model="searchTerm"
+        color="success"
+        :loading="loading"
+        class="blinking-cursor"
+        @change="getHistoricalArticles"
+        label="Fetch Historical News Sentiment Analysis"
+        placeholder="Search for Any Topic"
+      ></v-text-field>
+      <span class="caption" v-if="showTotal">{{ searchArticleResults.length }} / {{ totalPages - faultyArticles }} Articles</span>
+    </v-container>
+    <v-container background-color="#f2f2f2" v-if="searchArticleResults.length">
+      <v-row
+        no-gutters
+        align="center"
+        justify-content
+        v-for="rowIdx in (pageIdx + 1)"
+        :key="rowIdx"
+      >
+      <transition-group class="row center" name="list" tag="div">
+        <v-col
+          v-for="i in 10"
+          :key="'article-' + i"
+        >
+        <v-hover
+          v-slot="{ hover }"
+          open-delay="100"
+        >
+          <v-tooltip
+            top
+          >
+            <template v-slot:activator="{ on }">
+              <v-container v-on="on">
+                <a target="_blank" :href="searchArticleResults[((rowIdx - 1) * 10) + i - 1].web_url">
+                <v-card
+                  :elevation="hover ? 6 : 2"
+                  :class="{ 'on-hover': hover }"
+                  class="mx-auto pa-4"
+                  style="cursor: pointer"
+                  outlined
+                  :color="getColorFromArticle(searchArticleResults[((rowIdx - 1) * 10) + i - 1])"
+                >
+                </v-card>
+                </a>
+              </v-container>
+            </template>
+            
+            <span class="headline">{{ searchArticleResults[((rowIdx - 1) * 10) + i - 1].headline.main }}</span>
+          </v-tooltip>
+         </v-hover>
+         
+        </v-col></transition-group>
+      </v-row>
+    </v-container>
+    <v-snackbar
+      v-model="snackbar"
+      vertical
+    >
+      API requires new key
+      <template v-slot:action="{ attrs }">
+        <v-btn
+          color="indigo"
+          text
+          v-bind="attrs"
+          @click="snackbar = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </v-container>
+</transition>
 </template>
 
 <script>
+import { analyze, getColorFromSentimentScore } from '../utils/sentiment.js';
+
 export default {
   name: 'HelloWorld',
-  props: {
-    msg: String
-  }
+  data: () => ({
+    loading: false,
+    snackbar: false,
+    searchTerm: '',
+    nytApiKey: 'otMhcdzXQYCrN8NkJuJfbMlKVGItb8LP',
+    searchArticleResults: [],
+    pageIdx: 0,
+    totalPages: 0,
+    faultyArticles: 0,
+    showTotal: false,
+  }),
+  methods: {  
+    async getHistoricalArticles() {
+      if (!this.searchTerm) {
+        return;
+      }
+      this.totalPages = 0;
+      this.pageIdx = 0;
+      this.showTotal = false;
+      this.searchArticleResults = [];
+      this.faultyArticles = 0;
+      this.loading = true;
+      let nytAPIUrl = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${this.searchTerm}&api-key=${this.nytApiKey}`;
+      let nytResponse;
+      try {
+        nytResponse = await this.$http.get(nytAPIUrl); 
+      } catch (err) {
+        this.snackbar = true;
+        return;
+      }
+      this.totalPages = nytResponse.data.response.meta.hits;
+      this.showTotal = true;
+      nytResponse.data.response.docs.forEach((article) => {
+        if ('abstract' in article && 'web_url' in article && 'snippet' in article) {
+          this.searchArticleResults.push(article)
+        }
+      });
+      const ms = 6000;
+      await new Promise(resolve => setTimeout(resolve, ms));
+
+      for (let pageIdx = 1; pageIdx < (nytResponse.data.response.meta.hits / 10); pageIdx += 1) {
+        let nytAPIUrl = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${this.searchTerm}&api-key=${this.nytApiKey}&page=${pageIdx}`
+        try {
+          nytResponse = await this.$http.get(nytAPIUrl);
+        } catch (err) {
+          this.snackbar = true;
+          return;
+        }
+        this.pageIdx = pageIdx;
+        nytResponse.data.response.docs.forEach((article) => {
+          if ('abstract' in article && 'web_url' in article && 'snippet' in article) {
+            this.searchArticleResults.push(article)
+          } else {
+            this.faultyArticles += 1;
+          }
+        });
+        await new Promise(resolve => setTimeout(resolve, ms));
+      }
+      this.loading = false;
+    },
+    calculateSentiment(text) {
+      return analyze(text.abstract) +  analyze(text.snippet);
+    },
+    getColorFromArticle(article) {
+      const sentimentScore = this.calculateSentiment(article);
+      const targetColor = getColorFromSentimentScore(sentimentScore);
+      return targetColor;
+    },
+  },
+  mounted () {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.$refs.searchField.$refs.input.focus()
+      })
+    })
+  },
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
+.blinking-cursor {
+  font-weight: 400;
+  font-size: 30px;
+  color: #2E3D48;
+  -webkit-animation: 1s blink step-end infinite;
+  -moz-animation: 1s blink step-end infinite;
+  -ms-animation: 1s blink step-end infinite;
+  -o-animation: 1s blink step-end infinite;
+  animation: 1s blink step-end infinite;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
+
+@keyframes "blink" {
+  from, to {
+    color: transparent;
+  }
+  50% {
+    color: black;
+  }
 }
-li {
-  display: inline-block;
-  margin: 0 10px;
+
+@-moz-keyframes blink {
+  from, to {
+    color: transparent;
+  }
+  50% {
+    color: black;
+  }
 }
-a {
-  color: #42b983;
+
+@-webkit-keyframes "blink" {
+  from, to {
+    color: transparent;
+  }
+  50% {
+    color: black;
+  }
+}
+
+@-ms-keyframes "blink" {
+  from, to {
+    color: transparent;
+  }
+  50% {
+    color: black;
+  }
+}
+
+@-o-keyframes "blink" {
+  from, to {
+    color: transparent;
+  }
+  50% {
+    color: black;
+  }
+}
+.list-enter, .list-leave-to {
+  opacity: 0;
+}
+.list-enter-active, .list-leave-active {
+  transition: opacity 0.5s ease;
 }
 </style>
