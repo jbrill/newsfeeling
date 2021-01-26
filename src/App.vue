@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app id="app">
     <v-main>
       <v-toolbar color="#f3f3f3" absolute width="100%">
         <v-toolbar-title>
@@ -39,8 +39,8 @@ export default {
 };
 </script>
 
-<style scoped>
-body {
-  font-family: 'Roboto', 'Helvetica', sans-serif;
+<style>
+#app {
+  font-family: 'Lato', sans-serif;
 }
 </style>
