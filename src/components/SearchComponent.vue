@@ -16,15 +16,15 @@
           :loading="loading"
           class="blinking-cursor"
           @change="getHistoricalArticles"
-          label="Fetch Historical News Sentiment Analysis"
-          placeholder="Search for Any Topic"
+          label="Fetch Sentiment Analysis for the News"
+          placeholder="Search for Historical Content"
         ></v-text-field>
         <v-layout justify-space-between flex v-if="showTotal">
           <span class="caption">Search: <strong>{{ currentSearch }}</strong></span>
           <span class="caption">{{ searchArticleResults.length }} / {{ totalPages - faultyArticles }} Articles</span>
         </v-layout>
       </v-container>
-      <v-container background-color="#f2f2f2" v-if="searchArticleResults.length">
+      <v-container fluid background-color="#f2f2f2" v-if="searchArticleResults.length">
         <v-row
           no-gutters
           align="center"
@@ -139,6 +139,9 @@ export default {
       for (let pageIdx = 1; pageIdx < (nytResponse.data.response.meta.hits / 10); pageIdx += 1) {
         let nytAPIUrl = `https://api.nytimes.com/svc/search/v2/articlesearch.json?q=${this.searchTerm}&api-key=${this.nytApiKey}&page=${pageIdx}`
         try {
+          if (!this.loading) {
+            return;
+          }
           nytResponse = await this.$http.get(nytAPIUrl);
         } catch (err) {
           this.snackbar = true;
