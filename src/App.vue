@@ -3,11 +3,13 @@
     <v-main>
       <v-toolbar fixed color="#f3f3f3" width="100%">
         <v-toolbar-title>
-          <span class="display-1 font-weight-medium" style="color: #1210FF">News</span><span style="color: green" class="display-1 font-weight-light">Feeling</span>
+          <span class="display-1 font-weight-medium" style="color: #1210FF">News</span><span class="display-1 font-weight-light">Feeling</span>
         </v-toolbar-title>
         <v-toolbar-items><v-btn disabled absolute right fab icon><v-icon>mdi-book-open-blank-variant</v-icon></v-btn></v-toolbar-items>
       </v-toolbar>
-      <SearchComponent />
+      <v-container class="main-contain" fluid fill-height>
+        <SearchComponent />
+      </v-container>
     </v-main>
     <v-footer fixed color="white" elevation="10">
       <v-layout justify-space-between flex>
@@ -37,6 +39,9 @@ export default {
 <style>
 #app {
   font-family: 'Lato', sans-serif;
+}
+.main-contain {
+  background: #f6f6f6;
 }
 .title {
   color: #1210FF
