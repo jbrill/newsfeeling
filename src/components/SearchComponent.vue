@@ -1,12 +1,10 @@
 <template>
   <transition name="slide">
-    <v-container fill-height fluid>
+    <v-container fill-height>
       <v-container absolute padding="20%">
         <v-text-field
           ref="searchField"
           v-model="searchTerm"
-          light
-          flat
           clearable
           autofocus
           outlined
